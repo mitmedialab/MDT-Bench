@@ -1,240 +1,680 @@
-<!DOCTYPE html> 
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="description"
-        content="Human Robot Social Interaction (HSRI) Dataset & Benchmark">
-  <meta name="keywords" content="Health-LLM, Wearable Sensors, Personal Health Coach">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MDT-Bench: A Benchmark for Sequential Clinical Decision-Making in Multidisciplinary Teams</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MDT-Bench: A Benchmark for Sequential Clinical Decision-Making in Multidisciplinary Teams</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        .conversation-bubble {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            margin-bottom: 0.5rem;
+        }
+        .conversation-bubble.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .round-table {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            position: relative;
+            margin: 50px auto;
+        }
+        .participant {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: scale(0.8);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .participant.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .speaking {
+            box-shadow: 0 0 0 4px #4CAF50;
+        }
+        #clinicianA { top: 10px; left: 120px; background-color: #bbdefb; }
+        #clinicianB { top: 120px; right: 10px; background-color: #bbdefb; }
+        #clinicianC { bottom: 10px; left: 120px; background-color: #bbdefb; }
+        #patient { top: 120px; left: 10px; background-color: #ffecb3; }
+        #caregiver { bottom: 60px; right: 60px; background-color: #e1bee7; }
+        .speech-bubble {
+            position: absolute;
+            min-width: 200px;
+            max-width: 300px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            z-index: 10;
+        }
+        .speech-bubble.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+        #clinicianASpeech { top: -70px; left: 50px; background-color: #e3f2fd; }
+        #clinicianBSpeech { top: 80px; right: -220px; background-color: #e3f2fd; }
+        #clinicianCSpeech { bottom: -70px; left: 50px; background-color: #e3f2fd; }
+        #patientSpeech { top: 80px; left: -220px; background-color: #fff8e1; }
+        #caregiverSpeech { bottom: 0px; right: -180px; background-color: #f3e5f5; }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .medical-domain-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .medical-domain-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
 
-  <!-- Global site tag (gtag.js) - Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PYVRSFMDRL"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-
-    function gtag() {
-      dataLayer.push(arguments);
-    }
-
-    gtag('js', new Date());
-
-    gtag('config', 'G-PYVRSFMDRL');
-  </script>
-
-  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
-        rel="stylesheet">
-
-  <link rel="stylesheet" href="./static/css/bulma.min.css">
-  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
-  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
-  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
-  <link rel="stylesheet" href="./static/css/index.css">
-  <link rel="icon" href="./static/images/jibo_logo.jpg">
-
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script defer src="./static/js/fontawesome.all.min.js"></script>
-  <script src="./static/js/bulma-carousel.min.js"></script>
-  <script src="./static/js/bulma-slider.min.js"></script>
-  <script src="./static/js/index.js"></script>
+        /* Add height constraint to chart canvases */
+        #yearChart, #domainChart {
+            max-height: 300px; /* Limit the height */
+        }
+    </style>
 </head>
-<body>
-
-<nav class="navbar" role="navigation" aria-label="main navigation">
-  <div class="navbar-brand">
-    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
-      <span aria-hidden="true"></span>
-      <span aria-hidden="true"></span>
-      <span aria-hidden="true"></span>
-    </a>
-  </div>
-</nav>
-
-<section class="hero">
-  <div class="hero-body">
-    <div class="container is-max-desktop">
-      <div class="columns is-centered">
-        <div class="column has-text-centered">
-          <h1 class="title is-1 publication-title">MDT-Bench: A Benchmark for Sequential Clinical Decision-Making in Multidisciplinary Teams</h1>
-          <div class="is-size-5 publication-authors">
-            <span class="author-block">
-              <a href="https://ybkim95.github.io/">Yubin Kim</a><sup>1</sup>,
-            </span>
-	    <span class="author-block">
-        <a href="https://www.media.mit.edu/people/pmalacho/overview/">Hyewon Jeong</a><sup>1</sup>,
-      </span>
-	    <span class="author-block">
-	      <a href="">Mingyu Lu</a><sup>3</sup>,
-      </span>
-	    <span class="author-block">
-	      <a href="">Eugene Park</a><sup>1</sup>,
-	    </span>
-	    <span class="author-block">
-	      <a href="">Daniel McDuff</a><sup>5</sup>,
-	    </span>
-	    <span class="author-block">
-	      <a href="">Hyeonhoon Lee</a><sup>4</sup>,
-	    </span>
-	    <span class="author-block">
-	      <a href="https://www.media.mit.edu/people/cynthiab/overview/">Cynthia Breazeal</a><sup>1</sup>,
-	    </span>
-      <span class="author-block">
-	      <a href="">Samir Tulebaev</a><sup>2</sup>,
-	    </span>
-      <span class="author-block">
-	      <a href="https://www.media.mit.edu/people/haewon/overview/">Hae Won Park</a><sup>1</sup>
-	    </span>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold">MDT-Bench</h1>
+                    <p class="text-xl mt-2">A Benchmark for Sequential Clinical Decision-Making in Multidisciplinary Teams</p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <button class="bg-white text-indigo-700 px-4 py-2 rounded-lg font-semibold shadow hover:bg-indigo-50 transition">Download Dataset</button>
+                </div>
             </div>
-          <div class="is-size-5 publication-authors">
-            <span class="author-block"><sup>1</sup>Massachusetts Institute of Technology </span><br>
-            <span class="author-block"><sup>2</sup>Harvard Medical School</span><br>
-            <span class="author-block"><sup>3</sup>University of Washington</span><br>
-	          <span class="author-block"><sup>4</sup>Seoul National University Hospital</span>
-	          <span class="author-block"><sup>5</sup>Google</span>
-          </div>
+        </div>
+    </header>
 
-          <div class="column has-text-centered">
-            <div class="publication-links">
-              <!-- PDF Link. -->
-              <span class="link-block">
-                <a href="./static/pdf/paper.pdf"
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <i class="fas fa-file-pdf"></i>
-                  </span>
-                  <span>Paper</span>
-                </a>
-              </span>
-	      <!-- Arxiv Link. -->
-              <span class="link-block">
-                <a href="https://arxiv.org/abs/2503.05777"
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <i class="ai ai-arxiv"></i>
-                  </span>
-                  <span>arXiv</span>
-                </a>
-              </span>
-	      <!-- Github Link. -->
-	      <span class="link-block">
-                <a href="https://github.com/mitmedialab/medical_hallucination"
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <i class="fab fa-github"></i>
-                  </span>
-                  <span>Code</span>
-                  </a>
-              </span>
+    <!-- Navigation -->
+    <nav class="bg-white shadow">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-center">
+                <a href="#demo" class="px-4 py-3 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-indigo-500 hover:text-indigo-500">Interactive Demo</a>
+                <a href="#overview" class="px-4 py-3 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-indigo-500 hover:text-indigo-500">Dataset Overview</a>
+                <a href="#tasks" class="px-4 py-3 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-indigo-500 hover:text-indigo-500">Tasks</a>
+                <a href="#stats" class="px-4 py-3 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-indigo-500 hover:text-indigo-500">Statistics</a>
+                <a href="#performance" class="px-4 py-3 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-indigo-500 hover:text-indigo-500">LLM Performance</a>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
-  </div>
-</section>
+    </nav>
 
-<section class="section">
-  <div class="container is-max-desktop">
-    <!-- Abstract. -->
-    <div class="columns is-centered has-text-centered">
-      <div class="column is-four-fifths">
-        <h2 class="title is-3">Abstract</h2>
-        <div class="content has-text-justified">
-          <p>
-            We introduce MDT-Bench, a comprehensive multimodal benchmark designed to evaluate clinical decision-making in a realistic multidisciplinary team (MDT) setting. Comprising 12,910 samples sourced from the New England Journal of Medicine (NEJM) medical records and spanning over twenty clinical specialties (e.g., Pulmonary/Critical Care, Hematology/Oncology, Infectious Diseases), MDT-Bench transforms authentic cases into structured, multi-role and multi-turn dialogues. Each dialogue captures the sequential flow of medical processes, from initial patient screening and history-taking to diagnostic reasoning and treatment management. Our dataset uniquely models the interactive and collaborative nature of real clinical practice, where diverse expertise is integrated through dynamic feedback, error detection, and iterative decision refinement. By challenging foundation models to maintain clinical coherence, personalize reasoning, and integrate multimodal data, MDT-Bench bridges the gap between artificial and expert human performance in healthcare. Ultimately, this benchmark provides a vital tool for advancing research on collaborative medical decision-making, fostering improved AI support in clinical environments, and guiding the next generation of multidisciplinary medical AI systems.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Interactive Demo Section -->
+        <section id="demo" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Interactive Multidisciplinary Team Meeting</h2>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden p-6">
+                <div class="text-center mb-6">
+                    <p class="text-gray-600 mb-4">Experience how multidisciplinary team conversations unfold in clinical settings</p>
+                    <button id="startDemo" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow hover:bg-indigo-700 transition">Start Conversation</button>
+                    <button id="resetDemo" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold shadow hover:bg-gray-300 transition ml-2 hidden">Reset</button>
+                </div>
 
-<section class="section">
-  <div class="container is-max-desktop">
-    <h2 class="title is-3 has-text-centered">Examples of Medical Hallucinations</h2>
-    <div class="columns is-centered">
-      <div class="column is-full">
-        <figure class="image">
-          <img src="./static/images/mh_examples.png" alt="Figure 2: Overall characteristics of the SRI Dataset." style="max-width: 80%; display: block; margin: 0 auto;">
-          <figcaption class="has-text-centered">Table 1. Example types of medical hallucination in clinical tasks. Incorrect or hallucinated information is highlighted in red, while correct explanations are highlighted in blue. These hallucinations span multiple modalities demonstrating the widespread nature of errors in foundation models. These examples are from (Vishwanath et al., 2024; Pal et al., 2023; Burke and Schellmann, 2024; Brinkmann et al., 2024; Chen et al., 2024) respectively.</figcaption>
-        </figure>
-      </div>
-    </div>
-  </div>
-</section>
-	
-<section class="section">
-  <div class="container is-max-desktop">
-    <h2 class="title is-3 has-text-centered">LLM Experiments on Medical Hallucination Benchmark</h2>
-    <div class="columns is-centered">
-      <div class="column is-full">
-        <figure class="image">
-          <img src="./static/images/llm_exp.png" alt="Figure 2: Overall characteristics of the SRI Dataset." style="max-width: 65%; display: block; margin: 0 auto;">
-          <figcaption class="has-text-centered">Figure 1. Hallucination Pointwise Score vs. Similarity Score of LLMs on the Med-Halt hallucination benchmark. This result reveals that the recent models (e.g. o3-mini, deepseek-r1, and gemini-2.0-flash) typically start with high baseline hallucination resistance and tend to see moderate but consistent gains from a simple CoT, while previous models including medical-purpose LLMs often begin at low hallucination resistance yet can benefit from different approaches (e.g. Search, CoT, and System Prompt). Moreover, retrieval-augmented generation can be less effective if the model struggles to reconcile retrieved information with its internal knowledge.</figcaption>
-        </figure>
-      </div>
-    </div>
-  </div>
-</section>
+                <div class="round-table">
+                    <div id="clinicianA" class="participant">
+                        <span>👩‍⚕️</span>
+                    </div>
+                    <div id="clinicianASpeech" class="speech-bubble">
+                        <p>"Our case is about a 32-year-old male with progressive headaches and visual disturbances..."</p>
+                    </div>
 
-<section class="section">
-  <div class="container is-max-desktop">
-    <h2 class="title is-3 has-text-centered">A Survey from Clinicians</h2>
-    <div class="columns is-centered">
-      <div class="column is-full">
-        <figure class="image">
-          <img src="./static/images/doctor_survey.png" alt="Figure 3: Our benchmark offers 8 tasks dedicated to probing various facets of AI model's social reasoning.">
-          <figcaption class="has-text-centered">Figure 2. Key insights from a multi-national clinician survey on medical hallucinations in clinical practice. The survey highlights the most commonly used LLMs and their frequency of use among physicians (top), clinicians’ experiences with LLM hallucinations and their perspectives on AI-assisted medical practice (middle), and the primary reasons attributed to LLM hallucinations along with the importance of human oversight, training, and transparency as safeguards (bottom).</figcaption>
-        </figure>
-      </div>
-    </div>
-  </div>
-</section>
+                    <div id="clinicianB" class="participant">
+                        <span>👨‍⚕️</span>
+                    </div>
+                    <div id="clinicianBSpeech" class="speech-bubble">
+                        <p>"Based on the MRI results, I'm seeing evidence of a pituitary mass measuring approximately 2.3cm..."</p>
+                    </div>
 
-<section class="section" id="BibTeX">
-	<div class="container is-max-desktop content">
-	  <h2 class="title">Citation</h2>
-	  <pre><code>@article{kim2025medical,
-  title={Medical Hallucination in Foundation Models and Their Impact on Healthcare},
-  author={Kim, Yubin and Jeong, Hyewon and Chen, Shen and Li, Shuyue Stella and Lu, Mingyu and Alhamoud, Kumail and Mun, Jimin and Grau, Cristina and Jung, Minseok and Gameiro, Rodrigo R and others},
-  journal={medRxiv},
-  pages={2025--02},
-  year={2025},
-  publisher={Cold Spring Harbor Laboratory Press}
-}</code></pre>
-	<pre><code>@article {Kim2025.02.28.25323115,
-	author = {Kim, Yubin and Jeong, Hyewon and Chen, Shan and Li, Shuyue Stella and Lu, Mingyu and Alhamoud, Kumail and Mun, Jimin and Grau, Cristina and Jung, Minseok and Gameiro, Rodrigo and Fan, Lizhou and Park, Eugene and Lin, Tristan and Yoon, Joonsik and Yoon, Wonjin and Sap, Maarten and Tsvetkov, Yulia and Liang, Paul and Xu, Xuhai and Liu, Xin and McDuff, Daniel and Lee, Hyeonhoon and Park, Hae Won and Tulebaev, Samir and Breazeal, Cynthia},
-	title = {Medical Hallucination in Foundation Models and Their Impact on Healthcare},
-	elocation-id = {2025.02.28.25323115},
-	year = {2025},
-	doi = {10.1101/2025.02.28.25323115},
-	publisher = {Cold Spring Harbor Laboratory Press},
-	abstract = {Foundation Models that are capable of processing and generating multi-modal data have transformed AI{\textquoteright}s role in medicine. However, a key limitation of their reliability is hallucination, where inaccurate or fabricated information can impact clinical decisions and patient safety. We define medical hallucination as any instance in which a model generates misleading medical content. This paper examines the unique characteristics, causes, and implications of medical hallucinations, with a particular focus on how these errors manifest themselves in real-world clinical scenarios. Our contributions include (1) a taxonomy for understanding and addressing medical hallucinations, (2) benchmarking models using medical hallucination dataset and physician-annotated LLM responses to real medical cases, providing direct insight into the clinical impact of hallucinations, and (3) a multi-national clinician survey on their experiences with medical hallucinations. Our results reveal that inference techniques such as Chain-of-Thought (CoT) and Search Augmented Generation can effectively reduce hallucination rates. However, despite these improvements, non-trivial levels of hallucination persist. These findings underscore the ethical and practical imperative for robust detection and mitigation strategies, establishing a foundation for regulatory policies that prioritize patient safety and maintain clinical integrity as AI becomes more integrated into healthcare. The feedback from clinicians highlights the urgent need for not only technical advances but also for clearer ethical and regulatory guidelines to ensure patient safety. A repository organizing the paper resources, summaries, and additional information is available at https://github.com/mitmedialab/medical_hallucination.Competing Interest StatementThe authors have declared no competing interest.Funding StatementThis study did not receive any funding.Author DeclarationsI confirm all relevant ethical guidelines have been followed, and any necessary IRB and/or ethics committee approvals have been obtained.YesThe details of the IRB/oversight body that provided approval or exemption for the research described are given below:This study received an Institutional Review Board (IRB) exemption from MIT COUHES (Committee On the Use of Humans as Experimental Subjects) under exemption category 2 (Educational Testing, Surveys, Interviews, or Observation). The IRB determined that this research, involving surveys with professionals on their perceptions and experiences with AI/LLMs, posed minimal risk to participants and met the criteria for exemption.I confirm that all necessary patient/participant consent has been obtained and the appropriate institutional forms have been archived, and that any patient/participant/sample identifiers included were not known to anyone (e.g., hospital staff, patients or participants themselves) outside the research group so cannot be used to identify individuals.YesI understand that all clinical trials and any other prospective interventional studies must be registered with an ICMJE-approved registry, such as ClinicalTrials.gov. I confirm that any such study reported in the manuscript has been registered and the trial registration ID is provided (note: if posting a prospective study registered retrospectively, please provide a statement in the trial ID field explaining why the study was not registered in advance).YesI have followed all appropriate research reporting guidelines, such as any relevant EQUATOR Network research reporting checklist(s) and other pertinent material, if applicable.YesMed-HALT is a publicly available dataset and NEJM Medical Records can be access after the sign-up. https://www.nejm.org/browse/nejm-article-category/clinical-cases?date=past5Years https://github.com/medhalt/medhalt},
-	URL = {https://www.medrxiv.org/content/early/2025/03/03/2025.02.28.25323115},
-	eprint = {https://www.medrxiv.org/content/early/2025/03/03/2025.02.28.25323115.full.pdf},
-	journal = {medRxiv}
-}
-</code></pre>
-	</div>
-</section>
+                    <div id="patient" class="participant">
+                        <span>🧑</span>
+                    </div>
+                    <div id="patientSpeech" class="speech-bubble">
+                        <p>"The headaches have been getting worse over the past 3 months, especially in the mornings..."</p>
+                    </div>
 
-<footer class="footer">
-  <div class="container">
-    <div class="columns is-centered">
-      <div class="column is-8">
-        <div class="content">
-          <p>
-            This website is licensed under a <a rel="license"
-                                                href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
-            Commons Attribution-ShareAlike 4.0 International License</a>. Credit to Keunhong Park for the website template. 
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</footer>
+                    <div id="clinicianC" class="participant">
+                        <span>👩‍⚕️</span>
+                    </div>
+                    <div id="clinicianCSpeech" class="speech-bubble">
+                        <p>"Looking at the lab results, we have elevated prolactin levels at 220 ng/mL, which supports our diagnosis..."</p>
+                    </div>
 
+                    <div id="caregiver" class="participant">
+                        <span>👩</span>
+                    </div>
+                    <div id="caregiverSpeech" class="speech-bubble">
+                        <p>"I've noticed he's also been experiencing fatigue and decreased libido over the past few months..."</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-gray-100 p-4 rounded-lg">
+                    <h3 class="font-semibold text-gray-700 mb-2">Current Conversation:</h3>
+                    <div id="conversationLog" class="space-y-2">
+                        <!-- Conversation bubbles will appear here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dataset Overview Section -->
+        <section id="overview" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Dataset Overview</h2>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-6">
+                    <p class="text-gray-600 mb-4">MDT-Bench is constructed from real medical case records detailing the stages from the presentation of the case to the final diagnosis and management with a group-conversation format where clinicians, patients, and caregivers are engaged.</p>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8">
+                        <div class="bg-blue-50 p-4 rounded-lg text-center">
+                            <div class="text-4xl font-bold text-blue-600">12,910</div>
+                            <div class="text-gray-600 mt-2">Total Cases</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg text-center">
+                            <div class="text-4xl font-bold text-green-600">27</div>
+                            <div class="text-gray-600 mt-2">Medical Specialties</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg text-center">
+                            <div class="text-4xl font-bold text-purple-600">3+</div>
+                            <div class="text-gray-600 mt-2">Participants per Case</div>
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg text-center">
+                            <div class="text-4xl font-bold text-yellow-600">15</div>
+                            <div class="text-gray-600 mt-2">Avg. Turns per Case</div>
+                        </div>
+                        <div class="bg-orange-50 p-4 rounded-lg text-center">
+                            <div class="text-4xl font-bold text-orange-600">55</div>
+                            <div class="text-gray-600 mt-2">Avg. Tokens per Turn</div>
+                        </div>
+                         <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+
+
+                    <div class="mt-8">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4">Dataset Features</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-indigo-100 p-2 rounded-full">
+                                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="text-lg font-medium text-gray-800">Multi-role Conversations</h4>
+                                    <p class="text-gray-600">Includes interactions between multiple clinicians, patients, and caregivers</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-indigo-100 p-2 rounded-full">
+                                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="text-lg font-medium text-gray-800">Sequential Decision-Making</h4>
+                                    <p class="text-gray-600">Models the clinical decision process from presentation to final diagnosis</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-indigo-100 p-2 rounded-full">
+                                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path></svg>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="text-lg font-medium text-gray-800">Multimodal Content</h4>
+                                    <p class="text-gray-600">Combines text, images, and tabular data from real clinical cases</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-indigo-100 p-2 rounded-full">
+                                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="text-lg font-medium text-gray-800">Diverse Medical Domains</h4>
+                                    <p class="text-gray-600">Covers a wide range of medical specialties and conditions</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 px-6 py-4">
+                    <img src="/api/placeholder/900/500" alt="MDT-Bench Pipeline" class="w-full rounded-lg shadow-sm"/>
+                    <p class="text-sm text-gray-500 mt-2 text-center">Figure 1: MDT-Bench pipeline showing the stages from case presentation to final diagnosis</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tasks Section -->
+        <section id="tasks" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Task Categories</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-4 bg-blue-50">
+                        <h3 class="text-lg font-semibold text-blue-700">1. Decision Support in MDT Meetings</h3>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600">AI assists in multidisciplinary team meetings by providing real-time guideline recommendations.</p>
+                        <div class="mt-4 bg-gray-100 p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="bg-blue-100 p-2 rounded-full">👩‍⚕️</div>
+                                <div class="ml-2 text-sm text-gray-700">"Our case is about [PRESENTATION OF CASE]..."</div>
+                            </div>
+                            <div class="flex items-center mt-2">
+                                <div class="bg-yellow-100 p-2 rounded-full">🤖</div>
+                                <div class="ml-2 text-sm text-gray-700">"We need to re-check [GUIDELINE] to ensure..."</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-4 bg-purple-50">
+                        <h3 class="text-lg font-semibold text-purple-700">2. Medical Image Reasoning</h3>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600">AI interprets medical images, explaining findings to clinicians.</p>
+                        <div class="mt-4 bg-gray-100 p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="bg-blue-100 p-2 rounded-full">👨‍⚕️</div>
+                                <div class="ml-2 text-sm text-gray-700">"Explain the [IMAGE] you see in the monitor..."</div>
+                            </div>
+                            <div class="flex items-center mt-2">
+                                <div class="bg-yellow-100 p-2 rounded-full">🤖</div>
+                                <div class="ml-2 text-sm text-gray-700">"The [IMAGE] shows anterior pituitary tissue..."</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-4 bg-green-50">
+                        <h3 class="text-lg font-semibold text-green-700">3. Lab Test Reasoning</h3>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600">AI analyzes lab results, highlighting deviations from reference ranges.</p>
+                        <div class="mt-4 bg-gray-100 p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="bg-blue-100 p-2 rounded-full">👩‍⚕️</div>
+                                <div class="ml-2 text-sm text-gray-700">"What is your insight from [LABORATORY] result in the table..."</div>
+                            </div>
+                            <div class="flex items-center mt-2">
+                                <div class="bg-yellow-100 p-2 rounded-full">🤖</div>
+                                <div class="ml-2 text-sm text-gray-700">"The [VARIABLE] range seems to be out of the reference range..."</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-4 bg-red-50">
+                        <h3 class="text-lg font-semibold text-red-700">4. Diagnostic Reasoning</h3>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600">AI integrates patient data (presentation, images, labs) to propose diagnoses.</p>
+                        <div class="mt-4 bg-gray-100 p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="bg-blue-100 p-2 rounded-full">👨‍⚕️</div>
+                                <div class="ml-2 text-sm text-gray-700">"Based on [PRESENTATION OF CASE], [IMAGES], [LABORATORY] results, what's your diagnosis?"</div>
+                            </div>
+                            <div class="flex items-center mt-2">
+                                <div class="bg-yellow-100 p-2 rounded-full">🤖</div>
+                                <div class="ml-2 text-sm text-gray-700">"There's [EVIDENCE] of... and my [DIAGNOSIS] would be..."</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-4 bg-yellow-50">
+                        <h3 class="text-lg font-semibold text-yellow-700">5. Management Prediction</h3>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600">AI suggests management plans and recommends further tests based on diagnosis.</p>
+                        <div class="mt-4 bg-gray-100 p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="bg-blue-100 p-2 rounded-full">👩‍⚕️</div>
+                                <div class="ml-2 text-sm text-gray-700">"Based on your diagnosis, what would be the [MANAGEMENT] plan?"</div>
+                            </div>
+                            <div class="flex items-center mt-2">
+                                <div class="bg-yellow-100 p-2 rounded-full">🤖</div>
+                                <div class="ml-2 text-sm text-gray-700">"Because there is an [EVIDENCE] of... [TEST] are recommended and..."</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-4 bg-indigo-50">
+                        <h3 class="text-lg font-semibold text-indigo-700">6. Case Summarization</h3>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600">AI summarizes patient case presentations, ordering medical events chronologically.</p>
+                        <div class="mt-4 bg-gray-100 p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="bg-blue-100 p-2 rounded-full">👨‍⚕️</div>
+                                <div class="ml-2 text-sm text-gray-700">"Please order the medical events in [PRESENTATION OF CASE]..."</div>
+                            </div>
+                            <div class="flex items-center mt-2">
+                                <div class="bg-yellow-100 p-2 rounded-full">🤖</div>
+                                <div class="ml-2 text-sm text-gray-700">"Approximately [PERIOD] before presentation... The patient had [SYMPTOM]..."</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-4 bg-pink-50">
+                        <h3 class="text-lg font-semibold text-pink-700">7. Medical Hallucination Test</h3>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600">Test AI's ability to avoid generating medically inaccurate or fabricated information.</p>
+                        <div class="mt-4 bg-gray-100 p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="bg-blue-100 p-2 rounded-full">👩‍⚕️</div>
+                                <div class="ml-2 text-sm text-gray-700">"Can you list the side effects of [MEDICATION_X]?"</div>
+                            </div>
+                            <div class="flex items-center mt-2">
+                                <div class="bg-yellow-100 p-2 rounded-full">🤖</div>
+                                <div class="ml-2 text-sm text-gray-700">"[SIDE_EFFECT_1], [SIDE_EFFECT_2], ... (Ensure accuracy and avoid fabrication)"</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-4 bg-teal-50">
+                        <h3 class="text-lg font-semibold text-teal-700">8. Model Proactiveness Test</h3>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600">Evaluate AI's proactiveness in suggesting relevant actions or questions during the MDT meeting.</p>
+                        <div class="mt-4 bg-gray-100 p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="bg-blue-100 p-2 rounded-full">👨‍⚕️</div>
+                                <div class="ml-2 text-sm text-gray-700">"(Silence after initial case presentation)"</div>
+                            </div>
+                            <div class="flex items-center mt-2">
+                                <div class="bg-yellow-100 p-2 rounded-full">🤖</div>
+                                <div class="ml-2 text-sm text-gray-700">"To further understand the case, should we consider [NEXT_QUESTION] or [NEXT_TEST]?"</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Statistics Section -->
+        <section id="stats" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Dataset Statistics</h2>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-6">
+                    <div class="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-6">
+                        <div class="md:w-1/2">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-4">Year Distribution</h3>
+                            <canvas id="yearChart" height="300"></canvas>
+                        </div>
+                        <div class="md:w-1/2">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-4">Medical Domains</h3>
+                            <canvas id="domainChart" height="300"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="mt-10">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4">Top Medical Domains</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            <div class="medical-domain-card bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                                <div class="flex items-center">
+                                    <div class="bg-red-100 p-3 rounded-full">
+                                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                                    </div>
+                                    <div class="ml-4">
+                                        <h4 class="font-medium text-gray-800">Cardiology</h4>
+                                        <p class="text-gray-500">2,540 cases</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="medical-domain-card bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                                <div class="flex items-center">
+                                    <div class="bg-blue-100 p-3 rounded-full">
+                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    </div>
+                                    <div class="ml-4">
+                                        <h4 class="font-medium text-gray-800">Neurology</h4>
+                                        <p class="text-gray-500">2,100 cases</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="medical-domain-card bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                                <div class="flex items-center">
+                                    <div class="bg-green-100 p-3 rounded-full">
+                                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                    </div>
+                                    <div class="ml-4">
+                                        <h4 class="font-medium text-gray-800">Gastroenterology</h4>
+                                        <p class="text-gray-500">1,950 cases</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LLM Performance Section (Placeholder) -->
+        <section id="performance" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">LLM Performance</h2>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden p-6">
+                <p class="text-gray-600">This section will showcase the performance of various Large Language Models on the MDT-Bench benchmark. Stay tuned for updates!</p>
+                <!-- Placeholder for performance charts or tables -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 py-6 text-center">
+        <p class="text-gray-500 text-sm">© 2023 MDT-Bench. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const startDemoButton = document.getElementById('startDemo');
+        const resetDemoButton = document.getElementById('resetDemo');
+        const conversationLog = document.getElementById('conversationLog');
+        const participants = ['clinicianA', 'clinicianB', 'patient', 'clinicianC', 'caregiver'];
+        const participantEmojis = {
+            clinicianA: '👩‍⚕️',
+            clinicianB: '👨‍⚕️',
+            patient: '🧑',
+            clinicianC: '👩‍⚕️',
+            caregiver: '👩'
+        };
+        const speechBubbles = {
+            clinicianA: document.getElementById('clinicianASpeech'),
+            clinicianB: document.getElementById('clinicianBSpeech'),
+            patient: document.getElementById('patientSpeech'),
+            clinicianC: document.getElementById('clinicianCSpeech'),
+            caregiver: document.getElementById('caregiverSpeech')
+        };
+        const participantElements = {
+            clinicianA: document.getElementById('clinicianA'),
+            clinicianB: document.getElementById('clinicianB'),
+            patient: document.getElementById('patient'),
+            clinicianC: document.getElementById('clinicianC'),
+            caregiver: document.getElementById('caregiver')
+        };
+
+        let conversationSteps = [
+            { participant: 'clinicianA', utterance: "Good morning, team. Let's discuss Mr. Johnson's case today." },
+            { participant: 'clinicianB', utterance: "Morning. MRI indicates a pituitary mass, around 2.3cm as we suspected." },
+            { participant: 'patient', utterance: "These headaches are really impacting my daily life." },
+            { participant: 'clinicianC', utterance: "Lab results show elevated prolactin. Diagnosis of prolactinoma seems likely." },
+            { participant: 'caregiver', utterance: "He's also been very tired and less interested in things lately." },
+            { participant: 'clinicianA', utterance: "Okay, considering everything, let's proceed with treatment options. We'll discuss medication versus surgery." },
+            { participant: 'clinicianB', utterance: "Surgical resection could be an option given the size, but medication is often the first line." },
+            { participant: 'clinicianC', utterance: "Cabergoline is effective for prolactinomas. We should discuss potential side effects with the patient." },
+            { participant: 'patient', utterance: "I'm willing to consider anything that will make these headaches go away." },
+            { participant: 'caregiver', utterance: "We just want the best option for him." }
+        ];
+        let currentStep = 0;
+        let conversationInterval;
+        let conversationBubbles = []; // Array to hold pre-created conversation bubbles
+
+        // Pre-create conversation bubbles
+        participants.forEach(participantId => {
+            const bubbleElement = document.createElement('div');
+            bubbleElement.classList.add('conversation-bubble');
+            conversationLog.appendChild(bubbleElement);
+            conversationBubbles[participantId] = bubbleElement; // Store bubble for each participant
+        });
+
+
+        function showConversationStep() {
+            if (currentStep < conversationSteps.length) {
+                const step = conversationSteps[currentStep];
+                const bubble = speechBubbles[step.participant];
+                const speakerElement = participantElements[step.participant];
+                const logBubble = conversationBubbles[step.participant]; // Get pre-created log bubble
+
+                if (bubble && speakerElement && logBubble) {
+                    bubble.querySelector('p').textContent = step.utterance;
+                    speakerElement.classList.add('speaking');
+                    bubble.classList.add('visible');
+
+                    logBubble.innerHTML = `<div class="bg-gray-200 p-3 rounded-lg max-w-md">${participantEmojis[step.participant]} ${step.utterance}</div>`; // Use emoji in log
+                    setTimeout(() => {
+                        logBubble.classList.add('visible'); // Show log bubble
+                    }, 50);
+
+
+                    setTimeout(() => {
+                        bubble.classList.remove('visible');
+                        speakerElement.classList.remove('speaking');
+                        const bubbleDelay = step.utterance.length * 50; // Adjust delay based on text length
+                        setTimeout(() => {
+                            currentStep++;
+                            showConversationStep(); // Proceed to next step after bubble fades
+                        }, bubbleDelay); // Delay before next step, proportional to text length
+                    }, 2000); // Bubble visible duration
+                } else {
+                    currentStep++;
+                    showConversationStep(); // Skip if bubble or participant not found
+                }
+            } else {
+                clearInterval(conversationInterval);
+                startDemoButton.classList.add('hidden');
+                resetDemoButton.classList.remove('hidden');
+            }
+        }
+
+
+        function resetDemo() {
+            clearInterval(conversationInterval);
+            currentStep = 0;
+            conversationLog.querySelectorAll('.conversation-bubble').forEach(bubble => { // Hide all log bubbles
+                bubble.classList.remove('visible');
+            });
+            participants.forEach(participant => {
+                speechBubbles[participant].classList.remove('visible');
+                participantElements[participant].classList.remove('speaking');
+            });
+            startDemoButton.classList.remove('hidden');
+            resetDemoButton.classList.add('hidden');
+        }
+
+
+        startDemoButton.addEventListener('click', () => {
+            resetDemo(); // Reset before starting new demo
+            showConversationStep();
+        });
+
+        resetDemoButton.addEventListener('click', resetDemo);
+
+
+        // Chart.js placeholder data and rendering
+        const yearChartCanvas = document.getElementById('yearChart').getContext('2d');
+        const domainChartCanvas = document.getElementById('domainChart').getContext('2d');
+
+        const yearData = {
+            labels: ['2018', '2019', '2020', '2021', '2022', '2023'],
+            datasets: [{
+                label: 'Cases per Year',
+                data: [1500, 2200, 2800, 3500, 2000, 910], // Placeholder data
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        };
+
+        const domainData = {
+            labels: ['Cardiology', 'Neurology', 'Gastro', 'Oncology', 'Endo', 'Pulmonary'],
+            datasets: [{
+                label: 'Cases per Domain',
+                data: [2540, 2100, 1950, 1400, 1200, 1000], // Placeholder data
+                backgroundColor: ['rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(153, 102, 255, 0.7)', 'rgba(255, 159, 64, 0.7)'],
+                borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)', 'rgba(255, 159, 64, 1)'],
+                borderWidth: 1
+            }]
+        };
+
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false, // Keep this for responsiveness, but constrain height via CSS
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        };
+
+        new Chart(yearChartCanvas, {
+            type: 'bar',
+            data: yearData,
+            options: chartOptions
+        });
+
+        new Chart(domainChartCanvas, {
+            type: 'doughnut',
+            data: domainData,
+            options: chartOptions
+        });
+
+
+        // Initially hide all speech bubbles and log bubbles
+        participants.forEach(participant => {
+            speechBubbles[participant].classList.remove('visible');
+        });
+        conversationLog.querySelectorAll('.conversation-bubble').forEach(bubble => {
+            bubble.classList.remove('visible');
+        });
+
+
+    </script>
 </body>
 </html>
