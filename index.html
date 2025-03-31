@@ -196,10 +196,6 @@
                             <div class="text-4xl font-bold text-green-600">27</div>
                             <div class="text-gray-600 mt-2">Medical Specialties</div>
                         </div>
-                        <div class="bg-purple-50 p-4 rounded-lg text-center">
-                            <div class="text-4xl font-bold text-purple-600">3+</div>
-                            <div class="text-gray-600 mt-2">Participants per Case</div>
-                        </div>
                         <div class="bg-yellow-50 p-4 rounded-lg text-center">
                             <div class="text-4xl font-bold text-yellow-600">15</div>
                             <div class="text-gray-600 mt-2">Avg. Turns per Case</div>
@@ -207,6 +203,10 @@
                         <div class="bg-orange-50 p-4 rounded-lg text-center">
                             <div class="text-4xl font-bold text-orange-600">55</div>
                             <div class="text-gray-600 mt-2">Avg. Tokens per Turn</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg text-center"> <!-- Replaced "3+" with Dataset Time Span -->
+                            <div class="text-4xl font-bold text-purple-600">2018-2023</div>
+                            <div class="text-gray-600 mt-2">Dataset Time Span</div>
                         </div>
                          <div></div>
                         <div></div>
@@ -259,6 +259,17 @@
                                 <div class="ml-4">
                                     <h4 class="text-lg font-medium text-gray-800">Diverse Medical Domains</h4>
                                     <p class="text-gray-600">Covers a wide range of medical specialties and conditions</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-indigo-100 p-2 rounded-full">
+                                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15.176 15.642a3 3 0 11-4.242-4.243M6.31 15.642a3 3 0 10-4.242-4.243m5.353 1.036a5.235 5.235 0 01-3.976-3.977m8.632 3.977a5.235 5.235 0 00-3.976-3.977M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path></svg>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="text-lg font-medium text-gray-800">Participants per Case</h4>
+                                    <p class="text-gray-600">Typically involves 3 or more participants in each case</p>
                                 </div>
                             </div>
                         </div>
@@ -492,8 +503,82 @@
         <section id="performance" class="mb-16">
             <h2 class="text-2xl font-bold text-gray-800 mb-6">LLM Performance</h2>
             <div class="bg-white rounded-xl shadow-md overflow-hidden p-6">
-                <p class="text-gray-600">This section will showcase the performance of various Large Language Models on the MDT-Bench benchmark. Stay tuned for updates!</p>
-                <!-- Placeholder for performance charts or tables -->
+                <p class="text-gray-600 mb-4">Here are placeholder performance metrics for some Large Language Models on the MDT-Bench tasks. These are not real benchmarks and are for illustrative purposes only.</p>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Model</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Decision Support (F1)</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Image Reasoning (Acc)</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Lab Reasoning (Acc)</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Diagnostic Reasoning (F1)</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Management Prediction (F1)</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Case Summarization (ROUGE-L)</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Hallucination Test (Hallu-Score)</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Proactiveness (Proact-Score)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-4 py-2 whitespace-nowrap">Gemini 2.5 Pro</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.85</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.92</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.95</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.88</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.83</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.75</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.98</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.80</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-2 whitespace-nowrap">DeepSeek-R1</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.82</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.90</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.93</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.85</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.80</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.72</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.97</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.75</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-2 whitespace-nowrap">o3-mini</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.78</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.85</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.90</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.80</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.75</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.68</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.95</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.70</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-2 whitespace-nowrap">o1-pro</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.80</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.88</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.92</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.82</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.78</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.70</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.96</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.72</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-2 whitespace-nowrap">Claude 3.7</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.87</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.93</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.96</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.90</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.85</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.78</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.99</td>
+                                <td class="px-4 py-2 whitespace-nowrap">0.82</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
     </main>
@@ -563,7 +648,7 @@
                 const logBubble = conversationBubbles[step.participant]; // Get pre-created log bubble
 
                 if (bubble && speakerElement && logBubble) {
-                    bubble.querySelector('p').textContent = step.utterance;
+                    bubble.querySelector('p').textContent = `${participantEmojis[step.participant]} ${step.utterance}`; // Add emoji to roundtable bubble
                     speakerElement.classList.add('speaking');
                     bubble.classList.add('visible');
 
